@@ -1,5 +1,5 @@
 def main():
-    print("Hello from streaming-cdc!")
+    print("Hello from streaming event!")
 
 
 if __name__ == "__main__":

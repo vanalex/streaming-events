@@ -1,4 +1,4 @@
-# Streaming CDC demo: Coinbase → Redpanda Connect → Redpanda → Redis → Streamlit
+# Streaming Event demo: Coinbase → Redpanda Connect → Redpanda → Redis → Streamlit
 
 This stack ingests live Coinbase ticker events over WebSocket into Redpanda using Redpanda Connect, sinks them to Redis, and visualizes them in a Streamlit app.
 
