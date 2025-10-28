@@ -1,0 +1,17 @@
+input:
+  websocket:
+    url: wss://ws-feed.exchange.coinbase.com
+    open_message: '{"type":"subscribe","product_ids":["BTC-USD","ETH-USD"],"channels":["ticker"]}'
+
+pipeline:
+  processors:
+    - mapping: |
+        root = this
+        root.timestamp = now().ts_unix()
+
+output:
+  kafka:
+    addresses:
+      - redpanda:9092
+    topic: coinbase_ticker
+    max_in_flight: 1

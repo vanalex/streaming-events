@@ -1,0 +1,96 @@
+version: '3.8'
+
+networks:
+  redpanda-net:
+
+services:
+  redpanda:
+    image: redpandadata/redpanda:latest
+    container_name: redpanda
+    command:
+      - redpanda start
+      - --overprovisioned
+      - --smp 1
+      - --memory 1G
+      - --reserve-memory 0M
+      - --node-id 0
+      - --check=false
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+      - --set redpanda.auto_create_topics_enabled=true
+    ports:
+      - 9092:9092
+      - 19092:19092
+      - 9644:9644
+    networks:
+      - redpanda-net
+
+  redpanda-connect-ws:
+    image: redpandadata/connect:latest
+    container_name: redpanda-connect-ws
+    depends_on:
+      - redpanda
+    volumes:
+      - ./connect-config.yaml:/connect-config.yaml
+    networks:
+      - redpanda-net
+    command: run /connect-config.yaml
+    restart: unless-stopped
+
+  redpanda-connect-redis:
+    image: redpandadata/connect:latest
+    container_name: redpanda-connect-redis
+    depends_on:
+      - redpanda
+      - redis
+    volumes:
+      - ./redis-sink-config.yaml:/redis-sink-config.yaml
+    networks:
+      - redpanda-net
+    command: run /redis-sink-config.yaml
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - 6379:6379
+    networks:
+      - redpanda-net
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: redisinsight
+    depends_on:
+      - redis
+    ports:
+      - 5540:5540
+    networks:
+      - redpanda-net
+
+  console:
+    image: redpandadata/console:v2.7.2
+    container_name: redpanda-console
+    depends_on:
+      - redpanda
+    ports:
+      - 8080:8080
+    environment:
+      CONFIG_FILEPATH: /etc/console/console.yaml
+    volumes:
+      - ./console-config.yml:/etc/console/console.yaml:ro
+    networks:
+      - redpanda-net
+
+  streamlit:
+    image: python:3.11-slim
+    container_name: streamlit
+    depends_on:
+      - redis
+    ports:
+      - 8501:8501
+    volumes:
+      - ./streamlit_app.py:/app/streamlit_app.py
+    networks:
+      - redpanda-net
+    command: bash -c "pip install streamlit redis pandas && streamlit run /app/streamlit_app.py --server.port 8501 --server.address 0.0.0.0"
